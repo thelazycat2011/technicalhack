@@ -11,7 +11,8 @@ enum class GJLevelType {
     Editor = 2,
     Saved = 3
 };
-
+// This class is missing a lot of member function. If you happen to reverse-engineer any of it (for 2.0), make a pull request and (if you want to) contact me through Discord
+// Discord : Thereallazycat
 class GJGameLevel : public cocos2d::CCNode {
 public:
     gd::string m_levelName;
@@ -27,23 +28,6 @@ public:
         return from<int>(this, 0xEC);
     }
 
-    void dataLoaded(DS_Dictionary* dict) {
-        return reinterpret_cast<void(__thiscall*)(
-            GJGameLevel*, DS_Dictionary*
-        )>( base + 0xbded0 )(this, dict);
-    }
-
-    // this function is inlined on pc builds
-    static GJGameLevel* create() {
-        return reinterpret_cast<GJGameLevel*(__stdcall*)()>(
-            base + 0x94ad0
-        )();
-    }
-    static GJGameLevel* createWithCoder(DS_Dictionary* dict) {
-        auto ret = GJGameLevel::create();
-        ret->dataLoaded(dict);
-        return ret;
-    }
     std::string getAudioFileName() {
         std::string ret;
         reinterpret_cast<void(__thiscall*)(
@@ -59,7 +43,7 @@ public:
         auto len = strlen(data);
         auto addedLvlStr = reinterpret_cast<uintptr_t>(this) + 0x12c;
         *reinterpret_cast<size_t*>(addedLvlStr + 16) = len;   // length
-        *reinterpret_cast<size_t*>(addedLvlStr + 20) = max(len, 15); // capacity
+        *reinterpret_cast<size_t*>(addedLvlStr + 20) = std::max((int)len, 15); // capacity
         if (len <= 15)
             memcpy(reinterpret_cast<char*>(addedLvlStr), data, len + 1);
         else {
