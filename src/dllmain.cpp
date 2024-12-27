@@ -1,6 +1,6 @@
 #include "includes.h"
 #define Hook(orig, new, trampoline) MH_CreateHook(reinterpret_cast<void*>(orig), reinterpret_cast<void*>(&new), reinterpret_cast<void**>(&trampoline))
-const int param_count = 12;
+const int param_count = 13;
 bool noclip = false,
 	safeMode = false,
 	autoSafeMode = true,
@@ -12,6 +12,7 @@ bool noclip = false,
 	practiceMusic = false,
 	unlockIcon = false,
 	objectBypass = false,
+	copyHack = false,
 	wafflixMode = false;
 
 float fps = 240.0f,
@@ -74,6 +75,15 @@ void patchObjectCount() {
 		patch(0x4EF1A7, (uint8_t)0x75);
 	}
 }
+void patchCopyHack() {
+	if (copyHack) {
+		sequence_patch(0x5083C0, {0xE9, 0x01, 0x01, 0x00, 0x00, 0x90});
+	}
+	else {
+		sequence_patch(0x5083C0, {0x0F, 0x84, 0x00, 0x01, 0x00, 0x00});
+	}
+}
+
 // Icon Hack
 bool(__thiscall* GameManager_isIconUnlockedO)(gd::GameManager*, int, int); // also thanks to pololak
 bool __fastcall GameManager_isIconUnlockedH(gd::GameManager* self, void* edx, int id, int type) {
@@ -119,6 +129,7 @@ void load_config() { // Yandere Simulator's code
 		if (name == "restartbutton") std::cin >> restartButton;
 		if (name == "verifyhack") std::cin >> verifyHack;
 		if (name == "objectbypass") std::cin >> objectBypass;
+		if (name == "copyhack") std::cin >> copyHack;
 	}
 
 	// Even worse version of Yandere Simulator's code
@@ -128,6 +139,7 @@ void load_config() { // Yandere Simulator's code
 	patchPracticeMusic();
 	patchRestart();
 	patchVerifyHack();
+	patchCopyHack();
 }
 
 void save_config() { // Yandere Simulator's code 2
@@ -145,6 +157,7 @@ void save_config() { // Yandere Simulator's code 2
 	std::cout << "restartbutton " << restartButton << std::endl;
 	std::cout << "verifyhack " << verifyHack << std::endl;
 	std::cout << "objectbypass " << objectBypass << std::endl;
+	std::cout << "copyhack " << copyHack << std::endl;
 }
 
 //render func
@@ -178,6 +191,7 @@ void imgui_render() {
 			if (ImGui::Checkbox("Verify Hack", &verifyHack)) patchVerifyHack();
 			ImGui::Checkbox("Unlock Icon", &unlockIcon);
 			if (ImGui::Checkbox("Practice Music Sync", &practiceMusic)) patchPracticeMusic();
+			if (ImGui::Checkbox("Copy Hack", &copyHack)) patchCopyHack();
 			if (ImGui::Checkbox("Object Bypass", &objectBypass)) patchObjectCount();
 			// if (ImGui::Checkbox("Wafflix Mode", &practiceMusic)) patchPracticeMusic();
 			if (ImGui::Button("Save config")) save_config();
@@ -228,7 +242,6 @@ DWORD WINAPI thread_func(void* hModule) {
 	Hook(base + 0x16C830, PlayLayer_levelComplete_H, PlayLayer_levelComplete);
 
     MH_EnableHook(MH_ALL_HOOKS);
-
     return 0;
 }
 
