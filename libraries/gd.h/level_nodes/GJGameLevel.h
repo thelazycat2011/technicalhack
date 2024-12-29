@@ -43,7 +43,7 @@ public:
         auto len = strlen(data);
         auto addedLvlStr = reinterpret_cast<uintptr_t>(this) + 0x12c;
         *reinterpret_cast<size_t*>(addedLvlStr + 16) = len;   // length
-        *reinterpret_cast<size_t*>(addedLvlStr + 20) = std::max((int)len, 15); // capacity
+        *reinterpret_cast<size_t*>(addedLvlStr + 20) = max(len, 15); // capacity
         if (len <= 15)
             memcpy(reinterpret_cast<char*>(addedLvlStr), data, len + 1);
         else {

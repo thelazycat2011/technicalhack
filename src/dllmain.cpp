@@ -1,6 +1,6 @@
 #include "includes.h"
 #define Hook(orig, new, trampoline) MH_CreateHook(reinterpret_cast<void*>(orig), reinterpret_cast<void*>(&new), reinterpret_cast<void**>(&trampoline))
-const int param_count = 13;
+const int param_count = 14;
 bool noclip = false,
 	safeMode = false,
 	autoSafeMode = true,
@@ -13,6 +13,7 @@ bool noclip = false,
 	unlockIcon = false,
 	objectBypass = false,
 	copyHack = false,
+	cheatIndicator = false,
 	wafflixMode = false;
 
 float fps = 240.0f,
@@ -31,6 +32,10 @@ void patch(uint32_t address, T2 data)
 // Better way patching
 void sequence_patch(uint32_t address, std::vector<uint8_t> data) {
 	for (uint32_t i = 0; i < data.size(); i++) patch(address + i, (uint8_t)data[i]);
+}
+
+bool isCheating() {
+	return noclip || (speedhack && speed != 1.0f);
 }
 
 // Patching
@@ -99,10 +104,24 @@ void __fastcall PlayLayer_destroyPlayer_H(CCNode* self, void* edx, int* idk) {
 	if (!noclip) PlayLayer_destroyPlayer(self, idk);
 }
 
+// Idk
+void (__thiscall* PlayLayer_update)(void*, float);
+void __fastcall PlayLayer_update_H(CCNode* self, void* edx , float idk) {
+	if (cheatIndicator) {
+		auto chIn = CCLabelBMFont::create(".", "bigFont.fnt");
+		if (isCheating()) chIn->setColor({255, 0, 0});
+		else chIn->setColor({0, 255, 0});
+		chIn->setPosition({CCDirector::sharedDirector()->getScreenLeft() + 8, CCDirector::sharedDirector()->getScreenTop() + 2});
+		chIn->setZOrder(999999);
+		self->addChild(chIn);
+	}
+	PlayLayer_update(self, idk);
+}
+
 // Safe mode
 void (__fastcall* PlayLayer_levelComplete)(int*);
 void __fastcall PlayLayer_levelComplete_H(int* idk) {
-	if (safeMode || (autoSafeMode && (noclip || (speedhack && speed != 1.0f)))) reinterpret_cast<void(__fastcall*)(CCNode *)>(0x57DE80)((CCNode*) idk);
+	if (safeMode || (autoSafeMode && isCheating())) reinterpret_cast<void(__fastcall*)(CCNode *)>(0x57DE80)((CCNode*) idk);
 	else PlayLayer_levelComplete(idk);
 }
 
@@ -126,6 +145,7 @@ void load_config() { // Yandere Simulator's code
 		if (name == "verifyhack") std::cin >> verifyHack;
 		if (name == "objectbypass") std::cin >> objectBypass;
 		if (name == "copyhack") std::cin >> copyHack;
+		if (name == "cheatIndicator") std::cin >> cheatIndicator;
 	}
 
 	// Even worse version of Yandere Simulator's code
@@ -154,6 +174,7 @@ void save_config() { // Yandere Simulator's code 2
 	std::cout << "verifyhack " << verifyHack << std::endl;
 	std::cout << "objectbypass " << objectBypass << std::endl;
 	std::cout << "copyhack " << copyHack << std::endl;
+	std::cout << "cheatindicator " << cheatIndicator << std::endl;
 }
 
 //render func
@@ -189,6 +210,7 @@ void imgui_render() {
 			if (ImGui::Checkbox("Practice Music Sync", &practiceMusic)) patchPracticeMusic();
 			if (ImGui::Checkbox("Copy Hack", &copyHack)) patchCopyHack();
 			if (ImGui::Checkbox("Object Bypass", &objectBypass)) patchObjectCount();
+			ImGui::Checkbox("Cheat Indicator", &cheatIndicator);
 			// if (ImGui::Checkbox("Wafflix Mode", &practiceMusic)) patchPracticeMusic();
 			if (ImGui::Button("Save config")) save_config();
         }
@@ -236,6 +258,7 @@ DWORD WINAPI thread_func(void* hModule) {
 	Hook(base + 0x17B560, PlayLayer_destroyPlayer_H, PlayLayer_destroyPlayer);
 	Hook(base + 0x9B2A0, GameManager_isColorUnlocked_H, GameManager_isColorUnlocked);
 	Hook(base + 0x16C830, PlayLayer_levelComplete_H, PlayLayer_levelComplete);
+	Hook(base + 0x170F30, PlayLayer_update_H, PlayLayer_update);
 
     MH_EnableHook(MH_ALL_HOOKS);
     return 0;
