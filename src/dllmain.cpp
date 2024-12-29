@@ -35,6 +35,7 @@ void sequence_patch(uint32_t address, std::vector<uint8_t> data) {
 }
 
 bool isCheating() {
+	// TODO : Make this thing true even after you turn it off, unless you restart
 	return noclip || (speedhack && speed != 1.0f);
 }
 
@@ -107,6 +108,7 @@ void __fastcall PlayLayer_destroyPlayer_H(CCNode* self, void* edx, int* idk) {
 // Idk
 void (__thiscall* PlayLayer_update)(void*, float);
 void __fastcall PlayLayer_update_H(CCNode* self, void* edx , float idk) {
+	// TODO : Optimizing this so it don't lag the game
 	if (cheatIndicator) {
 		auto chIn = CCLabelBMFont::create(".", "bigFont.fnt");
 		if (isCheating()) chIn->setColor({255, 0, 0});
