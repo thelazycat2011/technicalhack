@@ -145,7 +145,7 @@ void load_config() { // Yandere Simulator's code
 		if (name == "verifyhack") std::cin >> verifyHack;
 		if (name == "objectbypass") std::cin >> objectBypass;
 		if (name == "copyhack") std::cin >> copyHack;
-		if (name == "cheatIndicator") std::cin >> cheatIndicator;
+		if (name == "cheatindicator") std::cin >> cheatIndicator;
 	}
 
 	// Even worse version of Yandere Simulator's code
