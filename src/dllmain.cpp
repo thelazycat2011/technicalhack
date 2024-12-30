@@ -105,19 +105,30 @@ void __fastcall PlayLayer_destroyPlayer_H(CCNode* self, void* edx, int* idk) {
 	if (!noclip) PlayLayer_destroyPlayer(self, idk);
 }
 
+bool (__thiscall* PlayLayer_init)(CCNode*, int*);
+bool __fastcall PlayLayer_init_H(CCNode* self, void* edx, int* param2) {
+	auto chIn = CCLabelBMFont::create(".", "bigFont.fnt");
+	chIn->setPosition({CCDirector::sharedDirector()->getScreenLeft() + 8, CCDirector::sharedDirector()->getScreenTop() + 2});
+	chIn->setZOrder(999999);
+	chIn->setOpacity(255);
+	chIn->setTag(69420);
+	self->addChild(chIn);
+	if (!PlayLayer_init(self, param2)) return false;
+	return true;
+}
+
 // Idk
-void (__thiscall* PlayLayer_update)(void*, float);
+void (__thiscall* PlayLayer_update)(CCNode*, float);
 void __fastcall PlayLayer_update_H(CCNode* self, void* edx , float idk) {
-	// TODO : Optimizing this so it don't lag the game
-	if (cheatIndicator) {
-		auto chIn = CCLabelBMFont::create(".", "bigFont.fnt");
-		if (isCheating()) chIn->setColor({255, 0, 0});
-		else chIn->setColor({0, 255, 0});
-		chIn->setPosition({CCDirector::sharedDirector()->getScreenLeft() + 8, CCDirector::sharedDirector()->getScreenTop() + 2});
-		chIn->setZOrder(999999);
-		self->addChild(chIn);
-	}
 	PlayLayer_update(self, idk);
+	CCNode* chIn = self->getChildByTag(69420);
+	CCLabelBMFont* chInAsTag = (CCLabelBMFont*)chIn;
+	if (cheatIndicator) {
+		chInAsTag->setOpacity(255);
+		if (isCheating()) chInAsTag->setColor({255, 0, 0});
+		else chInAsTag->setColor({0, 255, 0});
+	}
+	else chInAsTag->setOpacity(0);
 }
 
 // Safe mode
@@ -261,6 +272,7 @@ DWORD WINAPI thread_func(void* hModule) {
 	Hook(base + 0x9B2A0, GameManager_isColorUnlocked_H, GameManager_isColorUnlocked);
 	Hook(base + 0x16C830, PlayLayer_levelComplete_H, PlayLayer_levelComplete);
 	Hook(base + 0x170F30, PlayLayer_update_H, PlayLayer_update);
+	Hook(base + 0x16AB80, PlayLayer_init_H, PlayLayer_init);
 
     MH_EnableHook(MH_ALL_HOOKS);
     return 0;
