@@ -1,6 +1,6 @@
 #include "includes.h"
 #define Hook(orig, new, trampoline) MH_CreateHook(reinterpret_cast<void*>(orig), reinterpret_cast<void*>(&new), reinterpret_cast<void**>(&trampoline))
-const int param_count = 14;
+const int param_count = 15;
 bool noclip = false,
 	safeMode = false,
 	autoSafeMode = true,
@@ -14,6 +14,7 @@ bool noclip = false,
 	objectBypass = false,
 	copyHack = false,
 	cheatIndicator = false,
+	editLevel = false,
 	wafflixMode = false;
 
 float fps = 240.0f,
@@ -84,6 +85,11 @@ void patchObjectCount() {
 void patchCopyHack() {
 	if (copyHack) sequence_patch(0x5083C0, {0xE9, 0x01, 0x01, 0x00, 0x00, 0x90});
 	else sequence_patch(0x5083C0, {0x0F, 0x84, 0x00, 0x01, 0x00, 0x00});
+}
+
+void patchEditLevel() {
+	if (editLevel) sequence_patch(0x55BAAF, {0x90, 0x90});
+	else sequence_patch(0x55BAAF, {0x75, 0x62});
 }
 
 // Icon Hack
@@ -159,6 +165,7 @@ void load_config() { // Yandere Simulator's code
 		if (name == "objectbypass") std::cin >> objectBypass;
 		if (name == "copyhack") std::cin >> copyHack;
 		if (name == "cheatindicator") std::cin >> cheatIndicator;
+		if (name == "editlevel") std::cin >> editLevel;
 	}
 
 	// Even worse version of Yandere Simulator's code
@@ -169,6 +176,7 @@ void load_config() { // Yandere Simulator's code
 	patchRestart();
 	patchVerifyHack();
 	patchCopyHack();
+	patchEditLevel();
 }
 
 void save_config() { // Yandere Simulator's code 2
@@ -188,6 +196,7 @@ void save_config() { // Yandere Simulator's code 2
 	std::cout << "objectbypass " << objectBypass << std::endl;
 	std::cout << "copyhack " << copyHack << std::endl;
 	std::cout << "cheatindicator " << cheatIndicator << std::endl;
+	std::cout << "editlevel " << editLevel << std::endl;
 }
 
 //render func
@@ -218,6 +227,7 @@ void imgui_render() {
 			ImGui::Checkbox("Safe Mode", &safeMode);
 			ImGui::Checkbox("Auto Safe Mode", &autoSafeMode);
             if (ImGui::Checkbox("Restart Button", &restartButton)) patchRestart();
+			if (ImGui::Checkbox("Edit Level", &editLevel)) patchEditLevel();
 			if (ImGui::Checkbox("Verify Hack", &verifyHack)) patchVerifyHack();
 			ImGui::Checkbox("Unlock Icon", &unlockIcon);
 			if (ImGui::Checkbox("Practice Music Sync", &practiceMusic)) patchPracticeMusic();
@@ -241,6 +251,9 @@ void imgui_init() {
 	auto& style = ImGui::GetStyle();
 	style.WindowTitleAlign = ImVec2(0.5f, 0.5f);
 	style.WindowBorderSize = 0;
+	style.WindowRounding = 10;
+	style.FrameRounding = 10;
+	style.ChildRounding = 10;
 
 	auto colors = style.Colors;
 	colors[ImGuiCol_FrameBg] = ImVec4(0.31f, 0.31f, 0.31f, 0.54f);
