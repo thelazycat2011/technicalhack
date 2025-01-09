@@ -5,7 +5,7 @@
 #include "matnicehackutil.hpp"
 #include <nfd.h>
 using namespace gd;
-const int param_count = 15;
+const int param_count = 16;
 bool noclip = false,
 	safeMode = false,
 	autoSafeMode = true,
@@ -20,6 +20,7 @@ bool noclip = false,
 	copyHack = false,
 	cheatIndicator = false,
 	editLevel = false,
+	solidWaveTrails = false,
 	wafflixMode = false;
 
 float fps = 240.0f,
@@ -56,6 +57,10 @@ void update_speedhack() {
 }
 void patchRestart() {if (restartButton) patch(0x55BC96, (uint16_t)0xC039); else patch(0x55BC96, (uint16_t)0xF883);}
 void patchVerifyHack() {if (verifyHack) patch(0x4594E5, (uint8_t)0xEB); else patch(0x4594E5, (uint8_t)0x75);}
+void patchSolidWaveTrails() {
+	if (solidWaveTrails) sequence_patch(0x55F46B, {0x90, 0x90});
+	else sequence_patch(0x55F46B, {0x75, 0x0C});
+}
 void patchPracticeMusic() { //thanks pololak for this
 	auto gdbase = GetModuleHandleA(0);
 	if (practiceMusic) {
@@ -278,6 +283,7 @@ void load_config() { // Yandere Simulator's code
 		if (name == "copyhack") std::cin >> copyHack;
 		if (name == "cheatindicator") std::cin >> cheatIndicator;
 		if (name == "editlevel") std::cin >> editLevel;
+		if (name == "solidwavetrails") std::cin >> solidWaveTrails;
 	}
 
 	// Even worse version of Yandere Simulator's code
@@ -287,6 +293,7 @@ void load_config() { // Yandere Simulator's code
 	patchPracticeMusic();
 	patchRestart();
 	patchVerifyHack();
+	patchSolidWaveTrails();
 	patchCopyHack();
 	patchEditLevel();
 }
@@ -309,6 +316,7 @@ void save_config() { // Yandere Simulator's code 2
 	std::cout << "copyhack " << copyHack << std::endl;
 	std::cout << "cheatindicator " << cheatIndicator << std::endl;
 	std::cout << "editlevel " << editLevel << std::endl;
+	std::cout << "solidwavetrails " << solidWaveTrails << std::endl;
 }
 
 //render func
@@ -340,6 +348,7 @@ void imgui_render() {
 			ImGui::Checkbox("Auto Safe Mode", &autoSafeMode);
             if (ImGui::Checkbox("Restart Button", &restartButton)) patchRestart();
 			if (ImGui::Checkbox("Edit Level", &editLevel)) patchEditLevel();
+			if (ImGui::Checkbox("Solid Wave Trails", &solidWaveTrails)) patchSolidWaveTrails();
 			if (ImGui::Checkbox("Verify Hack", &verifyHack)) patchVerifyHack();
 			ImGui::Checkbox("Unlock Icon", &unlockIcon);
 			if (ImGui::Checkbox("Practice Music Sync", &practiceMusic)) patchPracticeMusic();
@@ -363,9 +372,6 @@ void imgui_init() {
 	auto& style = ImGui::GetStyle();
 	style.WindowTitleAlign = ImVec2(0.5f, 0.5f);
 	style.WindowBorderSize = 0;
-	style.WindowRounding = 10;
-	style.FrameRounding = 10;
-	style.ChildRounding = 10;
 
 	auto colors = style.Colors;
 	colors[ImGuiCol_FrameBg] = ImVec4(0.31f, 0.31f, 0.31f, 0.54f);
