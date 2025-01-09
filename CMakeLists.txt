@@ -25,11 +25,13 @@ target_include_directories(${PROJECT_NAME} PRIVATE
   libraries/libdetours/Detours/src
   libraries/gd.h
   libraries/gd.h/include
+  libraries/nfd/src/include
 )
 
 add_subdirectory(libraries/minhook)
 add_subdirectory(libraries/cocos-headers)
 add_subdirectory(libraries/imgui-hook)
 add_subdirectory(libraries/libdetours)
+add_subdirectory(libraries/nfd)
 
-target_link_libraries(${PROJECT_NAME} minhook cocos2d imgui-hook libdetours)
+target_link_libraries(${PROJECT_NAME} minhook cocos2d imgui-hook libdetours nfd)

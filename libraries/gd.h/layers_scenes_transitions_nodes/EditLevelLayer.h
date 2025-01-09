@@ -11,6 +11,9 @@ namespace gd {
 		GJGameLevel* level() {
 			return from<GJGameLevel*>(this, 0x12c);
 		}
+		static cocos2d::CCScene* scene(GJGameLevel* level) {
+			return reinterpret_cast<cocos2d::CCScene*(__fastcall*)(GJGameLevel*)>(base + 0x56EC0)(level);
+		}
 	};
 }
 

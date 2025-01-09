@@ -15,6 +15,7 @@ enum class GJLevelType {
 // Discord : Thereallazycat
 class GJGameLevel : public cocos2d::CCNode {
 public:
+    PAD(0xEF);
     gd::string m_levelName;
     gd::string m_levelDesc;
     gd::string m_levelString;

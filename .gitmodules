@@ -1,3 +1,6 @@
 [submodule "libraries/minhook"]
 	path = libraries/minhook
 	url = https://github.com/Tsudakageyu/minhook.git
+[submodule "libraries/nfd"]
+	path = libraries/nfd
+	url = https://github.com/mlabbe/nativefiledialog.git

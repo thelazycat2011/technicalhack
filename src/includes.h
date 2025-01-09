@@ -9,7 +9,7 @@
 #include <gd.h>
 
 using std::uintptr_t;
-
+#define Hook(orig, new, trampoline) MH_CreateHook(reinterpret_cast<void*>(orig), reinterpret_cast<void*>(&new), reinterpret_cast<void**>(&trampoline))
 // pretty everything in cocos2d starts with CC, so there is a low chance of collisions
 // it also makes using cocos a lot nicer imo
 using namespace cocos2d;
