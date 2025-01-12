@@ -2,8 +2,10 @@
 #include <fstream>
 #include "matplist.hpp"
 #include "impl.hpp"
-#include "matnicehackutil.hpp"
-#include <nfd.h>
+#include "matnicehackutil.hpp" // why
+//#include <nfd.h>
+#include "explorer.h"
+
 using namespace gd;
 const int param_count = 16;
 bool noclip = false,
@@ -21,7 +23,8 @@ bool noclip = false,
 	cheatIndicator = false,
 	editLevel = false,
 	solidWaveTrails = false,
-	wafflixMode = false;
+	wafflixMode = false,
+	explorer = false; // Don't save this bool.
 
 float fps = 240.0f,
 	speed = 1.0f;
@@ -133,111 +136,111 @@ bool __fastcall PlayLayer_init_H(CCNode* self, void* edx, int* param2) {
 	return true;
 }
 
-template <class S>
-void dump_level(GJGameLevel* level, S& stream) {
-	const auto song_key = level->m_songID ?
-		format("<k>k45</k><i>{}</i>", level->m_songID) : 
-			level->m_audioTrack ?
-				format("<k>k8</k><i>{}</i>", level->m_audioTrack) : "";
-	// encode it twice because gdshare does too
-	// why? i dont know fod is stupid
-	const auto encoded_desc = base64_encode(base64_encode(level->m_levelDesc.sv()));
-	format_to(stream, R"(<d>
-	<k>kCEK</k><i>4</i>
-	<k>k2</k><s>{}</s>
-	<k>k3</k><s>{}</s>
-	<k>k4</k><s>{}</s>
-	{}
-	<k>k13</k><t/>
-	<k>k21</k><i>2</i>
-	<k>k50</k><i>24</i>
-</d>)", level->m_levelName.sv(), encoded_desc, level->m_levelString.sv(), song_key);
-}
+// template <class S>
+// void dump_level(GJGameLevel* level, S& stream) {
+// 	const auto song_key = level->m_songID ?
+// 		format("<k>k45</k><i>{}</i>", level->m_songID) : 
+// 			level->m_audioTrack ?
+// 				format("<k>k8</k><i>{}</i>", level->m_audioTrack) : "";
+// 	// encode it twice because gdshare does too
+// 	// why? i dont know fod is stupid
+// 	const auto encoded_desc = base64_encode(base64_encode(level->m_levelDesc.sv()));
+// 	format_to(stream, R"(<d>
+// 	<k>kCEK</k><i>4</i>
+// 	<k>k2</k><s>{}</s>
+// 	<k>k3</k><s>{}</s>
+// 	<k>k4</k><s>{}</s>
+// 	{}
+// 	<k>k13</k><t/>
+// 	<k>k21</k><i>2</i>
+// 	<k>k50</k><i>24</i>
+// </d>)", level->m_levelName.sv(), encoded_desc, level->m_levelString.sv(), song_key);
+// }
 
-template <class S>
-GJGameLevel* import_level(S& stream) {
-	auto data = matplist::parse(stream);
-	GJGameLevel* level = GameLevelManager::sharedState()->createNewLevel();
-	for (auto& [key, var] : data) {
-		if (!std::holds_alternative<matplist::Value>(var)) continue;
-		matplist::Value value = std::get<matplist::Value>(var);
-		using namespace std::literals;
-		if (key == "k2"sv) {
-			level->m_levelName = value.value;
-		} else if (key == "k3"sv) {
-			level->m_levelDesc = base64_decode(base64_decode(value.value));
-		} else if (key == "k4"sv) {
-			level->m_levelString = value.value;
-		} else if (key == "k8"sv) {
-			const auto text = value.value;
-			level->m_audioTrack = std::stoi(text);
-		} else if (key == "k45"sv) {
-			const auto text = value.value;
-			level->m_songID = std::stoi(text);
-		}
-	}
-	return level;
-}
+// template <class S>
+// GJGameLevel* import_level(S& stream) {
+// 	auto data = matplist::parse(stream);
+// 	GJGameLevel* level = GameLevelManager::sharedState()->createNewLevel();
+// 	for (auto& [key, var] : data) {
+// 		if (!std::holds_alternative<matplist::Value>(var)) continue;
+// 		matplist::Value value = std::get<matplist::Value>(var);
+// 		using namespace std::literals;
+// 		if (key == "k2"sv) {
+// 			level->m_levelName = value.value;
+// 		} else if (key == "k3"sv) {
+// 			level->m_levelDesc = base64_decode(base64_decode(value.value));
+// 		} else if (key == "k4"sv) {
+// 			level->m_levelString = value.value;
+// 		} else if (key == "k8"sv) {
+// 			const auto text = value.value;
+// 			level->m_audioTrack = std::stoi(text);
+// 		} else if (key == "k45"sv) {
+// 			const auto text = value.value;
+// 			level->m_songID = std::stoi(text);
+// 		}
+// 	}
+// 	return level;
+// }
 
-bool (__thiscall* EditLevelLayer_init)(EditLevelLayer* self, GJGameLevel* level);
-bool __fastcall EditLevelLayer_init_H(EditLevelLayer* self, void* edx, GJGameLevel* level) {
-	if (!EditLevelLayer_init(self, level)) return false;
-	auto menu = CCMenu::create();
-	constexpr auto handler = [](CCObject* self, CCObject*) {
-		auto* const level = reinterpret_cast<EditLevelLayer*>(self)->level();
-		nfdchar_t* path = nullptr;
-		if (NFD_SaveDialog("gmd", nullptr, &path) == NFD_OKAY) {
-			std::ofstream file(path);
-			dump_level(level, file);
-			free(path);
-			auto alert = FLAlertLayer::create(nullptr, "Success", "The level has been saved", "OK", nullptr, 320.f, false, 0);
-			alert->show();
-		}
-	};
-	auto button = CCMenuItemSpriteExtra::create(
-		ButtonSprite::create("export", 40, 0, 0.5f, false, "goldFont.fnt", "GJ_button_01.png", 30),
-		nullptr, self, to_handler<SEL_MenuHandler, handler>
-	);
-	menu->setZOrder(1);
-	menu->setPosition(35, 69);
-	menu->addChild(button);
-	self->addChild(menu);
-	return true;
-}
+// bool (__thiscall* EditLevelLayer_init)(EditLevelLayer* self, GJGameLevel* level);
+// bool __fastcall EditLevelLayer_init_H(EditLevelLayer* self, void* edx, GJGameLevel* level) {
+// 	if (!EditLevelLayer_init(self, level)) return false;
+// 	auto menu = CCMenu::create();
+// 	constexpr auto handler = [](CCObject* self, CCObject*) {
+// 		auto* const level = reinterpret_cast<EditLevelLayer*>(self)->level();
+// 		nfdchar_t* path = nullptr;
+// 		if (NFD_SaveDialog("gmd", nullptr, &path) == NFD_OKAY) {
+// 			std::ofstream file(path);
+// 			dump_level(level, file);
+// 			free(path);
+// 			auto alert = FLAlertLayer::create(nullptr, "Success", "The level has been saved", "OK", nullptr, 320.f, false, 0);
+// 			alert->show();
+// 		}
+// 	};
+// 	auto button = CCMenuItemSpriteExtra::create(
+// 		ButtonSprite::create("export", 40, 0, 0.5f, false, "goldFont.fnt", "GJ_button_01.png", 30),
+// 		nullptr, self, to_handler<SEL_MenuHandler, handler>
+// 	);
+// 	menu->setZOrder(1);
+// 	menu->setPosition(35, 69);
+// 	menu->addChild(button);
+// 	self->addChild(menu);
+// 	return true;
+// }
 
-bool (__thiscall* LevelBrowserLayer_init)(LevelBrowserLayer* self, GJSearchObject* obj);
-bool __fastcall LevelBrowserLayer_init_H(LevelBrowserLayer* self, void* edx, GJSearchObject* obj) {
-	if (!LevelBrowserLayer_init(self, obj)) return false;
-	if (obj->m_type == SearchType::MyLevels) {
-		auto menu = CCMenu::create();
-		menu->setPosition(CCDirector::sharedDirector()->getWinSize().width - 30.f, 85);
-		self->addChild(menu);
-		constexpr auto handler = [](CCObject*, CCObject*) {
-			nfdchar_t* path = nullptr;
-			if (NFD_OpenDialog("gmd", nullptr, &path) == NFD_OKAY) {
-				std::ifstream file(path);
+// bool (__thiscall* LevelBrowserLayer_init)(LevelBrowserLayer* self, GJSearchObject* obj);
+// bool __fastcall LevelBrowserLayer_init_H(LevelBrowserLayer* self, void* edx, GJSearchObject* obj) {
+// 	if (!LevelBrowserLayer_init(self, obj)) return false;
+// 	if (obj->m_type == SearchType::MyLevels) {
+// 		auto menu = CCMenu::create();
+// 		menu->setPosition(CCDirector::sharedDirector()->getWinSize().width - 30.f, 85);
+// 		self->addChild(menu);
+// 		constexpr auto handler = [](CCObject*, CCObject*) {
+// 			nfdchar_t* path = nullptr;
+// 			if (NFD_OpenDialog("gmd", nullptr, &path) == NFD_OKAY) {
+// 				std::ifstream file(path);
 				
-				GJGameLevel* level = import_level(file);
-				free(path);
-				if (!level) {
-					FLAlertLayer::create(nullptr, "Error", "Failed to import", "OK", nullptr, 320.f, false, 0)->show();
-					return;
-				}
-				auto scene = EditLevelLayer::scene(level);
-				// CCDirector::sharedDirector()->pushScene(scene);
-			}
-		};
+// 				GJGameLevel* level = import_level(file);
+// 				free(path);
+// 				if (!level) {
+// 					FLAlertLayer::create(nullptr, "Error", "Failed to import", "OK", nullptr, 320.f, false, 0)->show();
+// 					return;
+// 				}
+// 				auto scene = EditLevelLayer::scene(level);
+// 				// CCDirector::sharedDirector()->pushScene(scene);
+// 			}
+// 		};
 
-		auto button = CCMenuItemSpriteExtra::create(
-			ButtonSprite::create("import", 40, 0, 0.5f, false, "goldFont.fnt", "GJ_button_01.png", 30),
-			nullptr, self, to_handler<SEL_MenuHandler, handler>
-		);
-		menu->setZOrder(1);
-		menu->addChild(button);
-	}
+// 		auto button = CCMenuItemSpriteExtra::create(
+// 			ButtonSprite::create("import", 40, 0, 0.5f, false, "goldFont.fnt", "GJ_button_01.png", 30),
+// 			nullptr, self, to_handler<SEL_MenuHandler, handler>
+// 		);
+// 		menu->setZOrder(1);
+// 		menu->addChild(button);
+// 	}
 
-	return true;
-}
+// 	return true;
+// }
 
 
 // Idk
@@ -324,7 +327,9 @@ void imgui_render() {
 	const auto& font = ImGui::GetIO().Fonts->Fonts.back();
 	ImGui::PushFont(font);
 	if (visible) {
-
+		if (explorer) {
+			render_explorer_window(explorer);
+		}
 		// ImGui::ShowDemoWindow();
 		// auto frame_size = CCDirector::sharedDirector()->getOpenGLView()->getFrameSize();
 
@@ -335,6 +340,9 @@ void imgui_render() {
 
 		if (ImGui::Begin("TechnicalHack", nullptr,
 			ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize)) {
+			if (ImGui::Button("Cocos Explorer")) {
+				explorer = !explorer;
+			}
 			ImGui::SetNextItemWidth(120);
 			if (ImGui::InputFloat("##fpsbypass", &fps)) update_fps_bypass();
 			ImGui::SameLine();
@@ -363,7 +371,7 @@ void imgui_render() {
     }
 	// Alt-tab/Unfocus/Hide the games windows apperently set the FPS back to 60
 	// This is designed to counter that
-	if (fpsBypass && (CCDirector::sharedDirector()->getAnimationInterval() != 1 / fps)) update_fps_bypass();
+	if (fpsBypass && (CCDirector::sharedDirector()->getAnimationInterval() != 1 / fps)) update_fps_bypass(); // Funny fix
 }
 
 void imgui_init() {
@@ -384,8 +392,11 @@ void imgui_init() {
 
 DWORD WINAPI thread_func(void* hModule) {
     // initialize minhook
-    MH_Initialize();
-    auto base = reinterpret_cast<uintptr_t>(GetModuleHandle(0));
+    if (MH_Initialize() != MH_OK) {
+		FreeLibraryAndExitThread(reinterpret_cast<HMODULE>(hModule), 0);
+	}
+
+    auto base = reinterpret_cast<uintptr_t>(GetModuleHandle(0)); // PLEASE USE gd::base :pray:
 	Speedhack::Setup();
     ImGuiHook::setToggleCallback([]() { visible = !visible; });
 	ImGuiHook::setRenderFunction(imgui_render);
@@ -408,7 +419,7 @@ DWORD WINAPI thread_func(void* hModule) {
     // Hook(base + 0x56FA0, EditLevelLayer_init_H, EditLevelLayer_init);
 
     MH_EnableHook(MH_ALL_HOOKS);
-    return 0;
+    return true;
 }
 
 

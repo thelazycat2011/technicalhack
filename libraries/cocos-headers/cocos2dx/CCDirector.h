@@ -143,8 +143,7 @@ public:
     /** Get the FPS value */
     inline double getAnimationInterval(void) { return m_dAnimationInterval; }
     /** Set the FPS value. */
-    RT_REMOVE( virtual void setAnimationInterval(double dValue) = 0; )
-    HJ_ADD( void setAnimationInterval(double value) { m_dAnimationInterval = value; } )
+    virtual void setAnimationInterval(double dValue) = 0;
 
     /** Whether or not to display the FPS on the bottom-left corner */
     inline bool isDisplayStats(void) { return m_bDisplayStats; }
@@ -253,7 +252,8 @@ public:
      * Try to avoid big stacks of pushed scenes to reduce memory allocation. 
      * ONLY call it if there is a running scene.
      */
-    void pushScene(CCScene *pScene);
+    RT_REMOVE(  void pushScene(CCScene *pScene);    )
+    RT_ADD(     bool pushScene(CCScene *pScene);    )
 
     /** Pops out a scene from the queue.
      * This scene will replace the running one.
@@ -278,7 +278,8 @@ public:
     /** Replaces the running scene with a new one. The running scene is terminated.
      * ONLY call it if there is a running scene.
      */
-    void replaceScene(CCScene *pScene);
+    RT_REMOVE(  void replaceScene(CCScene *pScene); )
+    RT_ADD(     bool replaceScene(CCScene *pScene); )
 
     /** Ends the execution, releases the running scene.
      It doesn't remove the OpenGL view from its parent. You have to do it manually.
@@ -351,6 +352,13 @@ public:
 
         CCDirector& operator=(const CCDirector&);
 
+        void checkSceneReference(void);
+
+        CCScene* getNextScene(void);
+        int levelForSceneInStack(CCScene*);
+        bool popSceneWithTransition(float, PopTransition);
+        void popToSceneInStack(CCScene*);
+        int sceneCount(void);
         void willSwitchToScene(CCScene*);
         
         void removeStatsLabel(void);
@@ -372,6 +380,7 @@ public:
         CC_SYNTHESIZE_READONLY_NV(float, m_fScreenBottom, ScreenBottom);
         CC_SYNTHESIZE_READONLY_NV(float, m_fScreenLeft, ScreenLeft);
         CC_SYNTHESIZE_READONLY_NV(float, m_fScreenRight, ScreenRight);
+        CC_SYNTHESIZE_NV(CCScene*, m_pSceneReference, SceneReference);
     )
 
 public:
@@ -410,6 +419,11 @@ public:
 
     /* delta time since last tick to main loop */
 	CC_PROPERTY_READONLY(float, m_fDeltaTime, DeltaTime);
+
+    /* *actual* delta time, according to rob. not sure what that means but i'm not arguing */
+    RT_ADD(
+        CC_SYNTHESIZE_NV(float, m_fActualDeltaTime, ActualDeltaTime); 
+    )
     
 	
 public:
@@ -430,6 +444,7 @@ protected:
         CC_SYNTHESIZE_READONLY_NV(int, m_nSmoothFixCounter, SmoothFixCounter);  // not sure about this one either
     )
 
+protected:
     bool m_bPurgeDirecotorInNextLoop; // this flag will be set to true in end()
     
     void setNextScene(void);
@@ -441,7 +456,7 @@ protected:
     
     /** calculates delta time since last time it was called */    
     void calculateDeltaTime();
-public:
+protected:
     /* The CCEGLView, where everything is rendered */
     CCEGLView    *m_pobOpenGLView;
 
@@ -514,9 +529,8 @@ public:
         CCSize m_obScaleFactor;
         CCSize m_obResolutionInPixels;
         TextureQuality m_eTextureQuality;
+        CC_SYNTHESIZE_NV(bool, m_bDontCallWillSwitch, DontCallWillSwitch);
     )
-    // TODO: this
-    PAD(8);
     
     // CCEGLViewProtocol will recreate stats labels to fit visible rect
     friend class CCEGLViewProtocol;
