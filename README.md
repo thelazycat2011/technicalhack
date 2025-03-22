@@ -17,3 +17,5 @@ Geometry Dash 2.0 hack menu (not that crazy)
 cmake -A Win32 -B build
 cmake --build build --config Release
 ```
+
+If you dont know where to test this, visit https://discord.gg/zAZ4273N4w
